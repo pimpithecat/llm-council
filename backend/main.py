@@ -8,16 +8,29 @@ from typing import List, Dict, Any
 import uuid
 import json
 import asyncio
+from redis import Redis
+from rq import Queue
 
-from . import storage
+from . import storage, jobs
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
+from .config import REDIS_URL
+from .worker import process_council_job
 
 app = FastAPI(title="LLM Council API")
+
+# Initialize Redis connection and RQ queue
+redis_conn = Redis.from_url(REDIS_URL)
+task_queue = Queue("council", connection=redis_conn)
 
 # Enable CORS for local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://localhost:3000",
+        "http://192.168.2.105:5173",
+        "http://192.168.2.105:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,6 +92,17 @@ async def get_conversation(conversation_id: str):
     return conversation
 
 
+@app.delete("/api/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str):
+    """Delete a conversation."""
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    storage.delete_conversation(conversation_id)
+    return {"message": "Conversation deleted successfully"}
+
+
 @app.post("/api/conversations/{conversation_id}/message")
 async def send_message(conversation_id: str, request: SendMessageRequest):
     """
@@ -121,6 +145,67 @@ async def send_message(conversation_id: str, request: SendMessageRequest):
         "stage3": stage3_result,
         "metadata": metadata
     }
+
+
+@app.post("/api/conversations/{conversation_id}/message/async")
+async def send_message_async(conversation_id: str, request: SendMessageRequest):
+    """
+    Send a message and process it in the background.
+    Returns immediately with a job_id that can be used to check status.
+    """
+    # Check if conversation exists
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Check if this is the first message
+    is_first_message = len(conversation["messages"]) == 0
+
+    # Add user message
+    storage.add_user_message(conversation_id, request.content)
+
+    # Generate job ID
+    job_id = str(uuid.uuid4())
+
+    # Create job record
+    jobs.create_job(job_id, conversation_id, request.content)
+
+    # Enqueue the job for background processing
+    task_queue.enqueue(
+        process_council_job,
+        job_id,
+        conversation_id,
+        request.content,
+        job_timeout='30m'  # 30 minutes timeout
+    )
+
+    # Start title generation in parallel if first message
+    if is_first_message:
+        asyncio.create_task(generate_and_update_title(conversation_id, request.content))
+
+    return {
+        "job_id": job_id,
+        "status": "pending",
+        "message": "Job queued for processing"
+    }
+
+
+async def generate_and_update_title(conversation_id: str, user_query: str):
+    """Helper function to generate and update conversation title."""
+    title = await generate_conversation_title(user_query)
+    storage.update_conversation_title(conversation_id, title)
+
+
+@app.get("/api/jobs/{job_id}")
+async def get_job_status(job_id: str):
+    """
+    Get the status and result of a background job.
+    """
+    job = jobs.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    return job
 
 
 @app.post("/api/conversations/{conversation_id}/message/stream")

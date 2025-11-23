@@ -19,3 +19,13 @@ data/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+
+# Documentation
+BACKGROUND-MODE.md
+IMPROVEMENTS.md
+
+# Logs
+*.log
+backend.log
+worker.log
+frontend/frontend.log

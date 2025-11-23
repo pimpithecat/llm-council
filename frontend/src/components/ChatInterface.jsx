@@ -72,6 +72,22 @@ export default function ChatInterface({
                 <div className="assistant-message">
                   <div className="message-label">LLM Council</div>
 
+                  {/* Job Status (for async mode) - only show if no results yet */}
+                  {msg.jobId && !msg.stage3 && (
+                    <div className="stage-loading">
+                      <div className="spinner"></div>
+                      <div style={{ flex: 1 }}>
+                        <span>
+                          {(!msg.jobStatus || msg.jobStatus === 'pending') && 'Queued for processing...'}
+                          {msg.jobStatus === 'processing' && 'Processing (Stage 1/2/3)...'}
+                        </span>
+                        <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>
+                          You can safely close this tab and come back later
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Stage 1 */}
                   {msg.loading?.stage1 && (
                     <div className="stage-loading">
