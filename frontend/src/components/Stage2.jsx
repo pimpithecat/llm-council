@@ -14,7 +14,7 @@ function deAnonymizeText(text, labelToModel) {
   return result;
 }
 
-export default function Stage2({ rankings, labelToModel, aggregateRankings, stageCost }) {
+export default function Stage2({ rankings, labelToModel, aggregateRankings, stageCost, showCost = true }) {
   const [activeTab, setActiveTab] = useState(0);
 
   if (!rankings || rankings.length === 0) {
@@ -28,7 +28,7 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings, stag
     <div className="stage stage2">
       <h3 className="stage-title">
         Stage 2: Peer Rankings
-        {totalCost > 0 && <span className="stage-cost"> ${totalCost.toFixed(4)}</span>}
+        {showCost && totalCost > 0 && <span className="stage-cost"> ${totalCost.toFixed(4)}</span>}
       </h3>
 
       <h4>Raw Evaluations</h4>
@@ -45,7 +45,7 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings, stag
             onClick={() => setActiveTab(index)}
           >
             <span className="tab-model">{rank.model.split('/')[1] || rank.model}</span>
-            {rank.cost > 0 && <span className="tab-cost">${rank.cost.toFixed(4)}</span>}
+            {showCost && rank.cost > 0 && <span className="tab-cost">${rank.cost.toFixed(4)}</span>}
           </button>
         ))}
       </div>

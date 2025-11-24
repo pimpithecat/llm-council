@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import './Stage1.css';
 
-export default function Stage1({ responses, stageCost }) {
+export default function Stage1({ responses, stageCost, showCost = true }) {
   const [activeTab, setActiveTab] = useState(0);
 
   if (!responses || responses.length === 0) {
@@ -16,7 +16,7 @@ export default function Stage1({ responses, stageCost }) {
     <div className="stage stage1">
       <h3 className="stage-title">
         Stage 1: Individual Responses
-        {totalCost > 0 && <span className="stage-cost"> ${totalCost.toFixed(4)}</span>}
+        {showCost && totalCost > 0 && <span className="stage-cost"> ${totalCost.toFixed(4)}</span>}
       </h3>
 
       <div className="tabs">
@@ -27,7 +27,7 @@ export default function Stage1({ responses, stageCost }) {
             onClick={() => setActiveTab(index)}
           >
             <span className="tab-model">{resp.model.split('/')[1] || resp.model}</span>
-            {resp.cost > 0 && <span className="tab-cost">${resp.cost.toFixed(4)}</span>}
+            {showCost && resp.cost > 0 && <span className="tab-cost">${resp.cost.toFixed(4)}</span>}
           </button>
         ))}
       </div>

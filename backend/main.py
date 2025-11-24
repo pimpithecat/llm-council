@@ -13,10 +13,21 @@ from rq import Queue
 
 from . import storage, jobs
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
-from .config import REDIS_URL
+from .config import REDIS_URL, get_council_config, update_council_config as config_update_council
 from .worker import process_council_job
+from .openrouter import close_http_client
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="LLM Council API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage app lifecycle - startup and shutdown."""
+    yield
+    # Cleanup on shutdown
+    await close_http_client()
+
+
+app = FastAPI(title="LLM Council API", lifespan=lifespan)
 
 # Initialize Redis connection and RQ queue
 redis_conn = Redis.from_url(REDIS_URL)
@@ -40,6 +51,13 @@ class CreateConversationRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     """Request to send a message in a conversation."""
     content: str
+
+
+class CouncilConfigRequest(BaseModel):
+    """Request to update council configuration."""
+    council_models: List[str] = None
+    chairman_model: str = None
+    custom_models: List[str] = None
 
 
 class ConversationMetadata(BaseModel):
@@ -161,6 +179,15 @@ async def send_message_async(conversation_id: str, request: SendMessageRequest):
     # Check if this is the first message
     is_first_message = len(conversation["messages"]) == 0
 
+    # Generate title BEFORE adding user message to avoid race condition
+    title = None
+    if is_first_message:
+        try:
+            title = await generate_conversation_title(request.content)
+            storage.update_conversation_title(conversation_id, title)
+        except Exception as e:
+            print(f"⚠️ Failed to generate title: {e}")
+
     # Add user message
     storage.add_user_message(conversation_id, request.content)
 
@@ -171,29 +198,28 @@ async def send_message_async(conversation_id: str, request: SendMessageRequest):
     jobs.create_job(job_id, conversation_id, request.content)
 
     # Enqueue the job for background processing
-    task_queue.enqueue(
+    rq_job = task_queue.enqueue(
         process_council_job,
         job_id,
         conversation_id,
         request.content,
-        job_timeout='30m'  # 30 minutes timeout
+        job_timeout='30m'
     )
+    
+    # Store RQ job ID for cancellation
+    jobs.update_job_status(job_id, "pending", rq_job_id=rq_job.id)
 
-    # Start title generation in parallel if first message
-    if is_first_message:
-        asyncio.create_task(generate_and_update_title(conversation_id, request.content))
-
-    return {
+    response = {
         "job_id": job_id,
         "status": "pending",
         "message": "Job queued for processing"
     }
-
-
-async def generate_and_update_title(conversation_id: str, user_query: str):
-    """Helper function to generate and update conversation title."""
-    title = await generate_conversation_title(user_query)
-    storage.update_conversation_title(conversation_id, title)
+    
+    # Include title if generated
+    if title:
+        response["title"] = title
+    
+    return response
 
 
 @app.get("/api/jobs/{job_id}")
@@ -206,6 +232,105 @@ async def get_job_status(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
 
     return job
+
+
+@app.delete("/api/jobs/{job_id}")
+async def cancel_job(job_id: str):
+    """
+    Cancel a pending or processing job.
+    """
+    job = jobs.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job['status'] not in ('pending', 'processing'):
+        raise HTTPException(status_code=400, detail=f"Cannot cancel job with status: {job['status']}")
+    
+    # Try to cancel the RQ job using stored rq_job_id
+    rq_job_id = job.get('rq_job_id')
+    if rq_job_id:
+        try:
+            from rq.job import Job as RQJob
+            rq_job = RQJob.fetch(rq_job_id, connection=redis_conn)
+            if rq_job:
+                rq_job.cancel()
+                print(f"✓ Cancelled RQ job {rq_job_id}")
+        except Exception as e:
+            print(f"⚠️ Could not cancel RQ job {rq_job_id}: {e}")
+    else:
+        print(f"⚠️ No rq_job_id found for job {job_id}")
+    
+    # Update job status
+    jobs.update_job_status(job_id, "failed", error="Cancelled by user")
+    
+    return {"status": "cancelled", "job_id": job_id}
+
+
+@app.post("/api/conversations/{conversation_id}/retry")
+async def retry_last_message(conversation_id: str):
+    """
+    Retry the last failed message in a conversation.
+    Removes the failed assistant message and requeues the user's question.
+    """
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    messages = conversation.get("messages", [])
+    if len(messages) < 1:
+        raise HTTPException(status_code=400, detail="No message to retry")
+    
+    # Find the last user message
+    last_user_msg = None
+    last_user_idx = -1
+    for i in range(len(messages) - 1, -1, -1):
+        if messages[i]['role'] == 'user':
+            last_user_msg = messages[i]
+            last_user_idx = i
+            break
+    
+    if last_user_msg is None:
+        raise HTTPException(status_code=400, detail="No user message found to retry")
+    
+    # Remove messages after the last user message (keep the user message)
+    conversation["messages"] = messages[:last_user_idx + 1]
+    storage.save_conversation(conversation)
+    
+    # Re-submit the message
+    job_id = str(uuid.uuid4())
+    jobs.create_job(job_id, conversation_id, last_user_msg['content'])
+    
+    # Enqueue the job
+    task_queue.enqueue(
+        process_council_job,
+        job_id,
+        conversation_id,
+        last_user_msg['content'],
+        job_timeout='30m'
+    )
+    
+    return {
+        "job_id": job_id,
+        "status": "pending",
+        "message": "Retry queued for processing"
+    }
+
+
+@app.get("/api/config/council")
+async def get_council_config_endpoint():
+    """Get current council configuration."""
+    return get_council_config()
+
+
+@app.post("/api/config/council")
+async def update_council_config_endpoint(request: CouncilConfigRequest):
+    """Update council configuration."""
+    updated = config_update_council(
+        council_models=request.council_models,
+        chairman_model=request.chairman_model,
+        custom_models=request.custom_models
+    )
+    return updated
 
 
 @app.post("/api/conversations/{conversation_id}/message/stream")
@@ -237,20 +362,20 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
             
             # Stage 1: Collect responses
             yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
-            stage1_results, stage1_cost = await stage1_collect_responses(request.content)
+            stage1_results, stage1_cost, _ = await stage1_collect_responses(request.content)
             total_cost += stage1_cost
             yield f"data: {json.dumps({'type': 'stage1_complete', 'data': stage1_results})}\n\n"
 
             # Stage 2: Collect rankings
             yield f"data: {json.dumps({'type': 'stage2_start'})}\n\n"
-            stage2_results, label_to_model, stage2_cost = await stage2_collect_rankings(request.content, stage1_results)
+            stage2_results, label_to_model, stage2_cost, _ = await stage2_collect_rankings(request.content, stage1_results)
             total_cost += stage2_cost
             aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
             yield f"data: {json.dumps({'type': 'stage2_complete', 'data': stage2_results, 'metadata': {'label_to_model': label_to_model, 'aggregate_rankings': aggregate_rankings}})}\n\n"
 
             # Stage 3: Synthesize final answer
             yield f"data: {json.dumps({'type': 'stage3_start'})}\n\n"
-            stage3_result, stage3_cost = await stage3_synthesize_final(request.content, stage1_results, stage2_results)
+            stage3_result, stage3_cost, _ = await stage3_synthesize_final(request.content, stage1_results, stage2_results)
             total_cost += stage3_cost
             yield f"data: {json.dumps({'type': 'stage3_complete', 'data': stage3_result})}\n\n"
 

@@ -9,7 +9,10 @@ export default function ChatInterface({
   conversation,
   conversationId,
   onSendMessage,
+  onCancelJob,
+  onRetry,
   isLoading,
+  showCost = true,
 }) {
   const [input, setInput] = useState('');
   const messagesContainerRef = useRef(null);
@@ -103,6 +106,15 @@ export default function ChatInterface({
                     <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>
                       You can safely close this tab and come back later
                     </div>
+                    {onCancelJob && conversation.messages.find(m => m.jobId) && (
+                      <button 
+                        className="cancel-button"
+                        onClick={() => onCancelJob(conversation.messages.find(m => m.jobId)?.jobId)}
+                        style={{ marginTop: '8px' }}
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -143,7 +155,28 @@ export default function ChatInterface({
                         <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>
                           You can safely close this tab and come back later
                         </div>
+                        {onCancelJob && (
+                          <button 
+                            className="cancel-button"
+                            onClick={() => onCancelJob(msg.jobId)}
+                            style={{ marginTop: '8px' }}
+                          >
+                            Cancel
+                          </button>
+                        )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Show retry button for failed jobs or incomplete responses */}
+                  {((msg.jobStatus === 'failed') || 
+                    (msg.role === 'assistant' && !msg.stage3 && !msg.jobId && !msg.loading)) && 
+                    onRetry && (
+                    <div className="error-message">
+                      <span>Failed to process. </span>
+                      <button className="retry-button" onClick={onRetry}>
+                        Retry
+                      </button>
                     </div>
                   )}
 
@@ -158,6 +191,7 @@ export default function ChatInterface({
                     <Stage1 
                       responses={msg.stage1}
                       stageCost={msg.metadata?.stage_costs?.stage1}
+                      showCost={showCost}
                     />
                   )}
 
@@ -174,6 +208,7 @@ export default function ChatInterface({
                       labelToModel={msg.metadata?.label_to_model}
                       aggregateRankings={msg.metadata?.aggregate_rankings}
                       stageCost={msg.metadata?.stage_costs?.stage2}
+                      showCost={showCost}
                     />
                   )}
 
@@ -184,7 +219,7 @@ export default function ChatInterface({
                       <span>Running Stage 3: Final synthesis...</span>
                     </div>
                   )}
-                  {msg.stage3 && <Stage3 finalResponse={msg.stage3} />}
+                  {msg.stage3 && <Stage3 finalResponse={msg.stage3} showCost={showCost} />}
                 </div>
               )}
             </div>
@@ -195,6 +230,23 @@ export default function ChatInterface({
           <div className="loading-indicator">
             <div className="spinner"></div>
             <span>Consulting the council...</span>
+          </div>
+        )}
+
+        {/* Show retry when last message is user (no assistant response) and no pending job */}
+        {!hasPendingJob && !isLoading && conversation.messages.length > 0 && 
+         conversation.messages[conversation.messages.length - 1].role === 'user' && 
+         onRetry && (
+          <div className="message-group">
+            <div className="assistant-message">
+              <div className="message-label">LLM Council</div>
+              <div className="error-message">
+                <span>Processing was cancelled or failed. </span>
+                <button className="retry-button" onClick={onRetry}>
+                  Retry
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

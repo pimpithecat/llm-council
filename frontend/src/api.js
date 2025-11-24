@@ -166,4 +166,68 @@ export const api = {
     }
     return response.json();
   },
+
+  /**
+   * Cancel a pending or processing job.
+   * @param {string} jobId - The job ID
+   * @returns {Promise<Object>}
+   */
+  async cancelJob(jobId) {
+    const response = await fetch(`${API_BASE}/api/jobs/${jobId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to cancel job');
+    }
+    return response.json();
+  },
+
+  /**
+   * Retry the last message in a conversation.
+   * @param {string} conversationId - The conversation ID
+   * @returns {Promise<Object>}
+   */
+  async retryLastMessage(conversationId) {
+    const response = await fetch(
+      `${API_BASE}/api/conversations/${conversationId}/retry`,
+      {
+        method: 'POST',
+      }
+    );
+    if (!response.ok) {
+      throw new Error('Failed to retry message');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get council configuration.
+   * @returns {Promise<Object>}
+   */
+  async getCouncilConfig() {
+    const response = await fetch(`${API_BASE}/api/config/council`);
+    if (!response.ok) {
+      throw new Error('Failed to get council config');
+    }
+    return response.json();
+  },
+
+  /**
+   * Update council configuration.
+   * @param {Object} config - The config update (council_models, chairman_model)
+   * @returns {Promise<Object>}
+   */
+  async updateCouncilConfig(config) {
+    const response = await fetch(`${API_BASE}/api/config/council`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update council config');
+    }
+    return response.json();
+  },
 };

@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Any, Tuple
 from .openrouter import query_models_parallel, query_model
-from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
+from .config import get_council_models, get_chairman_model
 
 
 async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
@@ -18,7 +18,17 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
     messages = [{"role": "user", "content": user_query}]
 
     # Query all models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
+    council_models = get_council_models()
+    print(f"📤 Stage 1: Querying {len(council_models)} models...")
+    responses = await query_models_parallel(council_models, messages)
+
+    # Check for failed models
+    failed_models = [m for m, r in responses.items() if r is None]
+    successful_models = [m for m, r in responses.items() if r is not None]
+    
+    if failed_models:
+        print(f"⚠️ Stage 1: {len(failed_models)} model(s) failed: {', '.join(failed_models)}")
+    print(f"✓ Stage 1: {len(successful_models)} model(s) responded successfully")
 
     # Format results and collect costs + generation IDs
     stage1_results = []
@@ -116,7 +126,17 @@ Now provide your evaluation and ranking:"""
     messages = [{"role": "user", "content": ranking_prompt}]
 
     # Get rankings from all council models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
+    council_models = get_council_models()
+    print(f"📤 Stage 2: Querying {len(council_models)} models for rankings...")
+    responses = await query_models_parallel(council_models, messages)
+
+    # Check for failed models
+    failed_models = [m for m, r in responses.items() if r is None]
+    successful_models = [m for m, r in responses.items() if r is not None]
+    
+    if failed_models:
+        print(f"⚠️ Stage 2: {len(failed_models)} model(s) failed: {', '.join(failed_models)}")
+    print(f"✓ Stage 2: {len(successful_models)} model(s) responded successfully")
 
     # Format results and collect costs + generation IDs
     stage2_results = []
@@ -201,12 +221,13 @@ Provide a clear, well-reasoned final answer that represents the council's collec
     messages = [{"role": "user", "content": chairman_prompt}]
 
     # Query the chairman model
-    response = await query_model(CHAIRMAN_MODEL, messages)
+    chairman_model = get_chairman_model()
+    response = await query_model(chairman_model, messages)
 
     if response is None:
         # Fallback if chairman fails
         return {
-            "model": CHAIRMAN_MODEL,
+            "model": chairman_model,
             "response": "Error: Unable to generate final synthesis."
         }, 0.0
 
@@ -223,10 +244,10 @@ Provide a clear, well-reasoned final answer that represents the council's collec
     
     generation_ids = {}
     if gen_id:
-        generation_ids[f"stage3_{CHAIRMAN_MODEL}"] = gen_id
+        generation_ids[f"stage3_{chairman_model}"] = gen_id
 
     return {
-        "model": CHAIRMAN_MODEL,
+        "model": chairman_model,
         "response": response.get('content', ''),
         "cost": cost,
         "cost_status": cost_status
@@ -352,6 +373,83 @@ Title:"""
         title = title[:47] + "..."
 
     return title
+
+
+class JobCancelledException(Exception):
+    """Raised when job is cancelled."""
+    pass
+
+
+async def run_full_council_with_cancel_check(user_query: str, cancel_check=None) -> Tuple[List, List, Dict, Dict, float]:
+    """
+    Run the complete 3-stage council process with cancel check.
+
+    Args:
+        user_query: The user's question
+        cancel_check: Function that returns True if job is cancelled
+
+    Returns:
+        Tuple of (stage1_results, stage2_results, stage3_result, metadata, total_cost)
+    """
+    total_cost = 0.0
+    
+    # Check cancel before stage 1
+    if cancel_check and cancel_check():
+        raise JobCancelledException("Job cancelled before Stage 1")
+    
+    # Stage 1: Collect individual responses
+    stage1_results, stage1_cost, stage1_gen_ids = await stage1_collect_responses(user_query)
+    total_cost += stage1_cost
+
+    # If no models responded successfully, return error
+    if not stage1_results:
+        return [], [], {
+            "model": "error",
+            "response": "All models failed to respond. Please try again."
+        }, {}, 0.0
+
+    # Check cancel before stage 2
+    if cancel_check and cancel_check():
+        raise JobCancelledException("Job cancelled before Stage 2")
+
+    # Stage 2: Collect rankings
+    stage2_results, label_to_model, stage2_cost, stage2_gen_ids = await stage2_collect_rankings(user_query, stage1_results)
+    total_cost += stage2_cost
+
+    # Calculate aggregate rankings
+    aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
+
+    # Check cancel before stage 3
+    if cancel_check and cancel_check():
+        raise JobCancelledException("Job cancelled before Stage 3")
+
+    # Stage 3: Synthesize final answer
+    stage3_result, stage3_cost, stage3_gen_ids = await stage3_synthesize_final(
+        user_query,
+        stage1_results,
+        stage2_results
+    )
+
+    total_cost += stage3_cost
+    
+    # Merge all generation IDs
+    all_generation_ids = {**stage1_gen_ids, **stage2_gen_ids, **stage3_gen_ids}
+    
+    # Prepare metadata with stage costs and generation IDs
+    metadata = {
+        "label_to_model": label_to_model,
+        "aggregate_rankings": aggregate_rankings,
+        "stage_costs": {
+            "stage1": stage1_cost,
+            "stage2": stage2_cost,
+            "stage3": stage3_cost,
+            "total": total_cost,
+            "status": "estimated"
+        },
+        "generation_ids": all_generation_ids
+    }
+
+    return stage1_results, stage2_results, stage3_result, metadata, total_cost
 
 
 async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict, float]:
