@@ -106,13 +106,17 @@ if %ERRORLEVEL% equ 0 (
 )
 echo.
 
+REM Load frontend port from .env
+set FRONTEND_PORT=5173
+for /f "tokens=2 delims==" %%a in ('findstr /r "^FRONTEND_PORT=" .env 2^>nul') do set FRONTEND_PORT=%%a
+
 echo ==========================================
 echo [92m✓ Setup Complete![0m
 echo ==========================================
 echo.
 echo Next steps:
 echo 1. Edit .env and add your OPENROUTER_API_KEY if not done yet
-echo 2. Run: start-background.bat
-echo 3. Open: http://localhost:5173
+echo 2. Run: start.bat
+echo 3. Open: http://localhost:%FRONTEND_PORT%
 echo.
 pause

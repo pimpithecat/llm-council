@@ -1,7 +1,7 @@
 @echo off
 REM LLM Council - Start All Services (Windows)
 
-echo Starting LLM Council in background mode...
+echo Starting LLM Council...
 echo.
 
 cd /d "%~dp0"
@@ -35,9 +35,16 @@ if not exist ".env" (
     exit /b 1
 )
 
-REM Load Redis port from .env (default to 6380)
+REM Load ports from .env
+set BACKEND_PORT=8001
+set FRONTEND_PORT=5173
 set REDIS_PORT=6380
+for /f "tokens=2 delims==" %%a in ('findstr /r "^BACKEND_PORT=" .env 2^>nul') do set BACKEND_PORT=%%a
+for /f "tokens=2 delims==" %%a in ('findstr /r "^FRONTEND_PORT=" .env 2^>nul') do set FRONTEND_PORT=%%a
 for /f "tokens=2 delims==" %%a in ('findstr /r "^REDIS_PORT=" .env 2^>nul') do set REDIS_PORT=%%a
+
+REM Sync frontend .env with root .env
+echo VITE_BACKEND_PORT=%BACKEND_PORT%> frontend\.env
 
 REM Check if Redis container is running
 docker ps | findstr llm-council-redis >nul 2>nul
@@ -51,20 +58,19 @@ if %ERRORLEVEL% neq 0 (
 )
 
 REM Start backend
-echo Starting backend...
+echo Starting backend on http://localhost:%BACKEND_PORT%...
 start "LLM Council Backend" /B .venv\Scripts\python -m backend.main > backend.log 2>&1
 
 timeout /t 2 /nobreak >nul
 
 REM Start worker
 echo Starting worker...
-REM Note: OBJC_DISABLE_INITIALIZE_FORK_SAFETY not needed on Windows
 start "LLM Council Worker" /B .venv\Scripts\python -m rq.cli worker council --url redis://localhost:%REDIS_PORT% > worker.log 2>&1
 
 timeout /t 2 /nobreak >nul
 
 REM Start frontend
-echo Starting frontend...
+echo Starting frontend on http://localhost:%FRONTEND_PORT%...
 cd frontend
 start "LLM Council Frontend" /B cmd /c "npm run dev > frontend.log 2>&1"
 cd ..
@@ -73,8 +79,9 @@ echo.
 echo [92m✓ LLM Council is running![0m
 echo.
 echo Services:
-echo   Backend:  http://localhost:8001
-echo   Frontend: http://localhost:5173
+echo   Backend:  http://localhost:%BACKEND_PORT%
+echo   Worker:   Running
+echo   Frontend: http://localhost:%FRONTEND_PORT%
 echo   Redis:    localhost:%REDIS_PORT% (Docker container)
 echo.
 echo Logs:

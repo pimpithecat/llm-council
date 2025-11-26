@@ -13,7 +13,7 @@ from rq import Queue
 
 from . import storage, jobs
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
-from .config import REDIS_URL, get_council_config, update_council_config as config_update_council
+from .config import REDIS_URL, BACKEND_PORT, CORS_ORIGINS, get_council_config, update_council_config as config_update_council
 from .worker import process_council_job
 from .openrouter import close_http_client
 from contextlib import asynccontextmanager
@@ -33,10 +33,10 @@ app = FastAPI(title="LLM Council API", lifespan=lifespan)
 redis_conn = Redis.from_url(REDIS_URL)
 task_queue = Queue("council", connection=redis_conn)
 
-# Enable CORS for local and network development
+# Enable CORS for configured hosts (from ALLOWED_HOSTS in .env)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -415,4 +415,4 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=BACKEND_PORT)

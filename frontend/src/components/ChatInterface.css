@@ -10,8 +10,22 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 24px;
+  padding: 48px 20% 24px 20%; /* Centered content like Notion page */
   max-width: 100%;
+}
+
+/* Responsive padding */
+@media (max-width: 1200px) {
+  .messages-container {
+    padding: 48px 10% 24px 10%;
+  }
+}
+
+@media (max-width: 768px) {
+  .messages-container {
+    padding: 24px 16px;
+    padding-top: 60px;
+  }
 }
 
 .empty-state {
@@ -20,14 +34,16 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   text-align: center;
 }
 
 .empty-state h2 {
   margin: 0 0 8px 0;
   font-size: 24px;
+  font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
 .empty-state p {
@@ -36,42 +52,54 @@
 }
 
 .message-group {
-  margin-bottom: 32px;
+  margin-bottom: 48px; /* More breathing room */
 }
 
 .user-message,
 .assistant-message {
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .message-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   margin-bottom: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+/* User message - Plain text */
 .user-message .message-content {
-  background: var(--message-bg);
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid var(--message-border);
+  background: transparent;
+  padding: 0;
+  border: none;
+  border-radius: 0;
   color: var(--text-primary);
   line-height: 1.6;
-  max-width: 80%;
+  max-width: 100%; /* Let it fill the container */
+  font-size: 16px;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
+}
+
+/* Assistant message - Plain text */
+.assistant-message .markdown-content {
+  padding: 0;
+  font-size: 16px;
 }
 
 .loading-indicator {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
-  color: var(--text-secondary);
+  padding: 0;
+  margin-top: 24px;
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 
@@ -79,23 +107,23 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
-  margin: 12px 0;
-  background: var(--bg-tertiary);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  padding: 12px 16px;
+  margin: 16px 0;
+  background: var(--bg-secondary); /* Subtle gray box */
+  border-radius: 4px;
+  border: none;
   color: var(--text-secondary);
-  font-size: 14px;
-  font-style: italic;
+  font-size: 13px;
+  font-style: normal;
 }
 
 .spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--accent-color);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color-light);
+  border-top-color: var(--text-secondary);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
@@ -105,47 +133,47 @@
 }
 
 .cancel-button {
-  padding: 6px 16px;
+  padding: 4px 8px;
   background: transparent;
-  border: 1px solid var(--text-tertiary);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .cancel-button:hover {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: #ef4444;
-  color: #ef4444;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
 }
 
 .retry-button {
-  padding: 6px 16px;
-  background: var(--accent-color);
+  padding: 4px 12px;
+  background: var(--text-primary);
   border: none;
   border-radius: 4px;
-  color: white;
-  font-size: 13px;
+  color: var(--bg-primary);
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .retry-button:hover {
-  background: var(--accent-hover);
+  opacity: 0.9;
 }
 
 .error-message {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 12px 0;
   margin: 12px 0;
-  background: rgba(239, 68, 68, 0.1);
-  border-radius: 8px;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  color: #eb5757; /* Notion red */
   font-size: 14px;
 }
 
@@ -153,25 +181,30 @@
   display: flex;
   align-items: flex-end;
   gap: 12px;
-  padding: 24px;
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-tertiary);
+  padding: 24px 20%; /* Match container padding */
+  border-top: none; /* Remove top border */
+  background: transparent;
+  position: relative;
 }
+
+/* Add a subtle gradient fade at bottom of messages if needed, but plain is better for Notion */
 
 .message-input {
   flex: 1;
-  padding: 14px;
-  background: var(--bg-primary) !important;
-  border: 1px solid var(--border-color-light);
-  border-radius: 8px;
+  padding: 12px 0;
+  background: transparent !important;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 0;
   color: var(--text-primary) !important;
   font-size: 15px;
   font-family: inherit;
   line-height: 1.5;
   outline: none;
-  resize: vertical;
-  min-height: 80px;
+  resize: none; /* Auto-resize usually handled by JS, but let's disable manual */
+  min-height: 24px;
   max-height: 300px;
+  transition: border-color 0.2s;
 }
 
 .message-input::placeholder {
@@ -180,110 +213,79 @@
 }
 
 .message-input:focus {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+  border-color: var(--text-primary); /* Dark line on focus */
+  box-shadow: none;
 }
 
 .message-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 .send-button {
-  padding: 14px 28px;
-  background: var(--accent-color);
-  border: 1px solid var(--accent-color);
-  border-radius: 8px;
-  color: var(--button-text);
-  font-size: 15px;
-  font-weight: 600;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: color 0.2s;
   white-space: nowrap;
   align-self: flex-end;
+  margin-bottom: 8px;
 }
 
 .send-button:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background: transparent;
+  color: var(--text-primary);
 }
 
 .send-button:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
-  background: var(--text-tertiary);
-  border-color: var(--text-tertiary);
+  color: var(--text-tertiary);
 }
 
-/* Mobile responsive */
-@media (max-width: 768px) {
-  .messages-container {
-    padding: 16px;
-    padding-top: 60px; /* Keep space for hamburger menu */
+/* Responsive Input */
+@media (max-width: 1200px) {
+  .input-form {
+    padding: 24px 10%;
   }
-  
+}
+
+@media (max-width: 768px) {
   .input-form {
     padding: 16px;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
+    border-top: 1px solid var(--border-color); /* Add border back on mobile */
+    background: var(--bg-primary); /* Solid bg on mobile */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+  }
+  
+  .messages-container {
+    padding-bottom: 100px; /* Space for fixed input */
   }
   
   .message-input {
-    min-height: 100px;
+    border: 1px solid var(--border-color);
+    border-radius: 20px; /* Pill shape on mobile */
+    padding: 10px 16px;
+    background: var(--bg-secondary) !important;
+    max-height: 120px;
+  }
+  
+  .message-input:focus {
+    border-color: var(--text-secondary);
   }
   
   .send-button {
-    align-self: stretch;
-    padding: 12px;
-  }
-  
-  .user-message .message-content {
-    max-width: 95%;
-  }
-  
-  .stage {
-    padding: 12px;
-  }
-  
-  .tabs {
-    gap: 4px;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  .tab {
-    flex-shrink: 0;
-    padding: 6px 12px;
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 480px) {
-  .messages-container {
-    padding: 12px;
-    padding-top: 54px; /* Smaller hamburger (32px) + margins: 10px + 32px + 12px */
-  }
-  
-  .input-form {
-    padding: 12px;
-  }
-  
-  .message-input {
-    font-size: 16px; /* Prevent zoom on iOS */
-  }
-  
-  .stage-title {
-    font-size: 14px;
-  }
-  
-  .empty-state h2 {
-    font-size: 20px;
-  }
-  
-  .empty-state p {
-    font-size: 14px;
+    margin-bottom: 2px;
+    color: var(--accent-color);
   }
 }

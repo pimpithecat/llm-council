@@ -106,6 +106,30 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 # Data directory for conversation storage
 DATA_DIR = "data/conversations"
 
+# Server port configuration
+BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8001"))
+FRONTEND_PORT = int(os.getenv("FRONTEND_PORT", "5173"))
+
+# Allowed hosts configuration (for CORS)
+# Comma-separated list of hostnames/IPs
+_allowed_hosts_str = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
+ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_str.split(",") if h.strip()]
+
+# Generate CORS origins from allowed hosts and frontend port
+def get_cors_origins() -> List[str]:
+    """Generate list of allowed CORS origins from ALLOWED_HOSTS."""
+    origins = []
+    for host in ALLOWED_HOSTS:
+        # Add both http and https variants with frontend port
+        origins.append(f"http://{host}:{FRONTEND_PORT}")
+        origins.append(f"https://{host}:{FRONTEND_PORT}")
+        # Also add without port for default ports
+        origins.append(f"http://{host}")
+        origins.append(f"https://{host}")
+    return origins
+
+CORS_ORIGINS = get_cors_origins()
+
 # Redis configuration for background jobs
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6380"))

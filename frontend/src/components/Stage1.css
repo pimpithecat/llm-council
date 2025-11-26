@@ -1,46 +1,57 @@
 .stage {
-  margin: 24px 0;
-  padding: 20px;
-  background: var(--bg-tertiary);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  margin: 16px 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  border: none;
 }
 
 .stage-title {
-  margin: 0 0 16px 0;
+  margin: 0 0 12px 0;
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
 }
 
 .stage-cost {
   font-size: 11px;
   font-weight: 400;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   opacity: 0.7;
   margin-left: 8px;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 16px;
+  margin-bottom: 0;
   flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0;
 }
 
 .tab {
-  padding: 8px 16px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color-light);
-  border-radius: 6px 6px 0 0;
-  color: var(--text-secondary);
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--text-tertiary);
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  flex-direction: row; /* Horizontal layout for minimal tabs */
+  align-items: center;
+  gap: 8px;
+  margin-bottom: -1px; /* Overlap bottom border */
 }
 
 .tab-model {
@@ -48,30 +59,30 @@
 }
 
 .tab-cost {
-  font-size: 9px;
-  color: var(--text-secondary);
+  font-size: 10px;
+  color: var(--text-tertiary);
   opacity: 0.6;
 }
 
 .tab:hover {
-  background: var(--bg-secondary);
+  background: transparent;
   color: var(--text-primary);
-  border-color: var(--accent-color);
+  border-bottom-color: var(--border-color-light);
 }
 
 .tab.active {
-  background: var(--bg-primary);
-  color: var(--accent-color);
-  border-color: var(--accent-color);
-  border-bottom-color: var(--bg-primary);
+  background: transparent;
+  color: var(--text-primary);
+  border-color: transparent;
+  border-bottom-color: var(--text-primary); /* Black underline */
   font-weight: 600;
 }
 
 .tab-content {
-  background: var(--bg-primary);
-  padding: 16px;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
+  background: transparent;
+  padding: 24px 0;
+  border-radius: 0;
+  border: none;
   max-width: 100%;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -80,8 +91,9 @@
 .model-name {
   color: var(--text-tertiary);
   font-size: 12px;
-  margin-bottom: 12px;
-  font-family: monospace;
+  margin-bottom: 16px;
+  font-family: inherit; /* Use main font */
+  display: none; /* Hide inside content since we have tabs */
 }
 
 .response-text {
@@ -89,29 +101,33 @@
   line-height: 1.6;
   overflow-wrap: break-word;
   word-break: break-word;
+  font-size: 15px;
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
   .stage {
-    margin: 16px 0;
-    padding: 12px;
+    margin: 12px 0;
+    padding: 0;
   }
   
   .tabs {
-    gap: 4px;
+    gap: 16px;
     overflow-x: auto;
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
+    padding-bottom: 0;
+    margin-bottom: 12px;
   }
   
   .tab {
     flex-shrink: 0;
-    padding: 6px 12px;
+    padding: 8px 4px;
     font-size: 13px;
+    white-space: nowrap;
   }
   
   .tab-content {
-    padding: 12px;
+    padding: 12px 0;
   }
 }

@@ -88,9 +88,12 @@ else
     echo ""
 fi
 
-# Load Redis port from .env if exists (default to 6380)
+# Load ports from .env if exists
+FRONTEND_PORT=5173
 REDIS_PORT=6380
 if [ -f ".env" ]; then
+    FRONTEND_PORT=$(grep '^FRONTEND_PORT=' .env 2>/dev/null | cut -d'=' -f2)
+    FRONTEND_PORT=${FRONTEND_PORT:-5173}
     REDIS_PORT=$(grep '^REDIS_PORT=' .env 2>/dev/null | cut -d'=' -f2)
     REDIS_PORT=${REDIS_PORT:-6380}
 fi
@@ -116,6 +119,6 @@ echo "=========================================="
 echo ""
 echo "Next steps:"
 echo "1. Edit .env and add your OPENROUTER_API_KEY if not done yet"
-echo "2. Run: ./start-background.sh"
-echo "3. Open: http://localhost:5173"
+echo "2. Run: ./start.sh"
+echo "3. Open: http://localhost:${FRONTEND_PORT}"
 echo ""

@@ -2,7 +2,8 @@
  * API client for the LLM Council backend.
  */
 
-const API_BASE = `http://${window.location.hostname}:8001`;
+const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '8001';
+const API_BASE = `http://${window.location.hostname}:${BACKEND_PORT}`;
 
 export const api = {
   /**

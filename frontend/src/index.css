@@ -1,5 +1,5 @@
 :root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
   line-height: 1.5;
   font-weight: 400;
 
@@ -9,46 +9,48 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Light theme variables */
+/* Light theme variables - Notion-like Minimalist */
 [data-theme="light"] {
   --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-tertiary: #fafafa;
-  --text-primary: #333;
-  --text-secondary: #666;
-  --text-tertiary: #999;
-  --border-color: #e0e0e0;
-  --border-color-light: #d0d0d0;
-  --accent-color: #4a90e2;
-  --accent-hover: #357abd;
-  --sidebar-bg: #f8f8f8;
-  --code-bg: #f5f5f5;
-  --code-text: #333;
-  --blockquote-border: #ddd;
-  --message-bg: #f0f7ff;
-  --message-border: #d0e7ff;
+  --bg-secondary: #f7f7f5; /* Notion light gray hover */
+  --bg-tertiary: #f1f1ef; /* Slightly darker gray */
+  --text-primary: #37352f; /* Notion default text */
+  --text-secondary: #787774; /* Notion gray text */
+  --text-tertiary: #9b9a97; /* Lighter gray */
+  --border-color: #e9e9e7; /* Subtle border */
+  --border-color-light: #f0f0ee;
+  --accent-color: #2e2e2e; /* Dark gray/Black instead of blue */
+  --accent-hover: #000000;
+  --sidebar-bg: #f7f7f5;
+  --code-bg: #f7f6f3;
+  --code-text: #eb5757; /* Notion code red-ish or just standard */
+  --blockquote-border: #37352f;
+  --message-bg: transparent; /* Removed bubble bg */
+  --message-border: transparent;
   --button-text: #ffffff;
+  --selection-bg: #cce9ff; /* Subtle blue selection is ok, or gray */
 }
 
-/* Dark theme variables - Calm & comfortable */
+/* Dark theme variables - Minimalist Dark */
 [data-theme="dark"] {
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #242424;
-  --bg-tertiary: #2d2d2d;
-  --text-primary: #e4e4e7;
-  --text-secondary: #a1a1aa;
-  --text-tertiary: #71717a;
-  --border-color: #3f3f46;
-  --border-color-light: #52525b;
-  --accent-color: #60a5fa;
-  --accent-hover: #3b82f6;
-  --sidebar-bg: #1f1f23;
-  --code-bg: #27272a;
-  --code-text: #e4e4e7;
-  --blockquote-border: #52525b;
-  --message-bg: #27303f;
-  --message-border: #475569;
-  --button-text: #ffffff;
+  --bg-primary: #191919;
+  --bg-secondary: #202020;
+  --bg-tertiary: #2c2c2c;
+  --text-primary: #d4d4d4;
+  --text-secondary: #9b9b9b;
+  --text-tertiary: #6e6e6e;
+  --border-color: #2f2f2f;
+  --border-color-light: #3a3a3a;
+  --accent-color: #ffffff; /* White accent */
+  --accent-hover: #e0e0e0;
+  --sidebar-bg: #202020;
+  --code-bg: #2c2c2c;
+  --code-text: #ff7b72;
+  --blockquote-border: #d4d4d4;
+  --message-bg: transparent;
+  --message-border: transparent;
+  --button-text: #000000;
+  --selection-bg: #3d3d3d;
 }
 
 *, *::before, *::after {
@@ -85,16 +87,18 @@ body {
   overflow: hidden;
 }
 
-/* Global markdown styling */
+/* Global markdown styling - Minimalist */
 .markdown-content {
-  padding: 12px;
+  padding: 4px 0; /* Reduced padding, remove bubble feel */
   max-width: 100%;
   overflow-wrap: break-word;
   word-break: break-word;
+  font-size: 16px;
 }
 
 .markdown-content p {
-  margin: 0 0 12px 0;
+  margin: 0 0 0.75em 0;
+  line-height: 1.6;
 }
 
 .markdown-content p:last-child {
@@ -107,7 +111,9 @@ body {
 .markdown-content h4,
 .markdown-content h5,
 .markdown-content h6 {
-  margin: 16px 0 8px 0;
+  margin: 1.5em 0 0.5em 0;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .markdown-content h1:first-child,
@@ -121,42 +127,55 @@ body {
 
 .markdown-content ul,
 .markdown-content ol {
-  margin: 0 0 12px 0;
-  padding-left: 24px;
+  margin: 0 0 1em 0;
+  padding-left: 1.5em;
 }
 
 .markdown-content li {
-  margin: 4px 0;
+  margin: 0.25em 0;
 }
 
 .markdown-content pre {
   background: var(--code-bg);
-  color: var(--code-text);
-  padding: 12px;
+  color: var(--text-primary); /* Cleaner code block */
+  padding: 16px;
   border-radius: 4px;
   overflow-x: auto;
-  margin: 0 0 12px 0;
+  margin: 1em 0;
   max-width: 100%;
   box-sizing: border-box;
+  border: 1px solid var(--border-color); /* Subtle border for code */
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  font-size: 0.85em;
 }
 
 .markdown-content code {
   background: var(--code-bg);
-  color: var(--code-text);
-  padding: 2px 6px;
+  color: #eb5757; /* Notion-like red for inline code */
+  padding: 2px 4px;
   border-radius: 3px;
-  font-family: monospace;
-  font-size: 0.9em;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  font-size: 0.85em;
+}
+
+[data-theme="dark"] .markdown-content code {
+    color: #ff7b72;
 }
 
 .markdown-content pre code {
   background: none;
   padding: 0;
+  color: inherit;
 }
 
 .markdown-content blockquote {
-  margin: 0 0 12px 0;
-  padding-left: 16px;
-  border-left: 4px solid var(--blockquote-border);
-  color: var(--text-secondary);
+  margin: 1em 0;
+  padding-left: 14px;
+  border-left: 3px solid var(--text-primary); /* Solid dark line */
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+::selection {
+    background: var(--selection-bg);
 }
