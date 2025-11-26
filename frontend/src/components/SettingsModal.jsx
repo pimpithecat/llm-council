@@ -220,13 +220,13 @@ export default function SettingsModal({ isOpen, onClose, onSettingsChange }) {
             className={`tab-btn ${activeTab === 'models' ? 'active' : ''}`}
             onClick={() => setActiveTab('models')}
           >
-            Custom Models
+            Models
           </button>
           <button 
             className={`tab-btn ${activeTab === 'council' ? 'active' : ''}`}
             onClick={() => setActiveTab('council')}
           >
-            Council Config
+            Council
           </button>
           <button 
             className={`tab-btn ${activeTab === 'display' ? 'active' : ''}`}
@@ -295,7 +295,7 @@ export default function SettingsModal({ isOpen, onClose, onSettingsChange }) {
                           className={`custom-model-item ${modelHealth[model] === 'unhealthy' ? 'unhealthy' : ''}`}
                         >
                           <span className={`health-indicator ${modelHealth[model] || 'unknown'}`} />
-                          <span className="model-name" title={model}>{model}</span>
+                          <span className="custom-model-name" title={model}>{model}</span>
                           <div className="model-actions">
                             <button 
                               className="refresh-single-btn"

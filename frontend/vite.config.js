@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true, // Listen on all network interfaces (0.0.0.0)
       port: frontendPort,
+      strictPort: true, // Fail if port is already in use (don't auto-switch)
     },
   }
 })

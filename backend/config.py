@@ -106,6 +106,9 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 # Data directory for conversation storage
 DATA_DIR = "data/conversations"
 
+# Instance configuration (for multi-instance support)
+INSTANCE_NAME = os.getenv("INSTANCE_NAME", "council")
+
 # Server port configuration
 BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8001"))
 FRONTEND_PORT = int(os.getenv("FRONTEND_PORT", "5173"))

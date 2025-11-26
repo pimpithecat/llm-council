@@ -13,7 +13,7 @@ from rq import Queue
 
 from . import storage, jobs
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
-from .config import REDIS_URL, BACKEND_PORT, CORS_ORIGINS, get_council_config, update_council_config as config_update_council
+from .config import REDIS_URL, BACKEND_PORT, CORS_ORIGINS, INSTANCE_NAME, get_council_config, update_council_config as config_update_council
 from .worker import process_council_job
 from .openrouter import close_http_client
 from contextlib import asynccontextmanager
@@ -29,9 +29,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="LLM Council API", lifespan=lifespan)
 
-# Initialize Redis connection and RQ queue
+# Initialize Redis connection and RQ queue (queue name = instance name)
 redis_conn = Redis.from_url(REDIS_URL)
-task_queue = Queue("council", connection=redis_conn)
+task_queue = Queue(INSTANCE_NAME, connection=redis_conn)
 
 # Enable CORS for configured hosts (from ALLOWED_HOSTS in .env)
 app.add_middleware(

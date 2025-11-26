@@ -88,28 +88,33 @@ else
     echo ""
 fi
 
-# Load ports from .env if exists
+# Load configuration from .env if exists
+INSTANCE_NAME=council
 FRONTEND_PORT=5173
 REDIS_PORT=6380
 if [ -f ".env" ]; then
+    INSTANCE_NAME=$(grep '^INSTANCE_NAME=' .env 2>/dev/null | cut -d'=' -f2)
+    INSTANCE_NAME=${INSTANCE_NAME:-council}
     FRONTEND_PORT=$(grep '^FRONTEND_PORT=' .env 2>/dev/null | cut -d'=' -f2)
     FRONTEND_PORT=${FRONTEND_PORT:-5173}
     REDIS_PORT=$(grep '^REDIS_PORT=' .env 2>/dev/null | cut -d'=' -f2)
     REDIS_PORT=${REDIS_PORT:-6380}
 fi
 
+REDIS_CONTAINER="llm-${INSTANCE_NAME}-redis"
+
 # Check if Redis is running or create container
-echo "Setting up Redis..."
-if docker ps | grep -q llm-council-redis; then
-    echo "✓ Redis container already running"
-elif docker ps -a | grep -q llm-council-redis; then
+echo "Setting up Redis for instance [${INSTANCE_NAME}]..."
+if docker ps | grep -q "$REDIS_CONTAINER"; then
+    echo "✓ Redis container already running ($REDIS_CONTAINER)"
+elif docker ps -a | grep -q "$REDIS_CONTAINER"; then
     echo "Starting existing Redis container..."
-    docker start llm-council-redis
-    echo "✓ Redis container started"
+    docker start "$REDIS_CONTAINER"
+    echo "✓ Redis container started ($REDIS_CONTAINER)"
 else
     echo "Creating Redis container..."
-    docker run -d --name llm-council-redis -p ${REDIS_PORT}:6379 --restart unless-stopped redis:7-alpine
-    echo "✓ Redis container created and started"
+    docker run -d --name "$REDIS_CONTAINER" -p ${REDIS_PORT}:6379 --restart unless-stopped redis:7-alpine
+    echo "✓ Redis container created and started ($REDIS_CONTAINER)"
 fi
 echo ""
 

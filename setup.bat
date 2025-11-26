@@ -83,25 +83,29 @@ if not exist ".env" (
     echo.
 )
 
-REM Load Redis port from .env (default to 6380)
+REM Load configuration from .env
+set INSTANCE_NAME=council
 set REDIS_PORT=6380
+for /f "tokens=2 delims==" %%a in ('findstr /r "^INSTANCE_NAME=" .env 2^>nul') do set INSTANCE_NAME=%%a
 for /f "tokens=2 delims==" %%a in ('findstr /r "^REDIS_PORT=" .env 2^>nul') do set REDIS_PORT=%%a
 
+set REDIS_CONTAINER=llm-%INSTANCE_NAME%-redis
+
 REM Setup Redis
-echo Setting up Redis...
-docker ps | findstr llm-council-redis >nul 2>nul
+echo Setting up Redis for instance [%INSTANCE_NAME%]...
+docker ps | findstr %REDIS_CONTAINER% >nul 2>nul
 if %ERRORLEVEL% equ 0 (
-    echo [92m✓ Redis container already running[0m
+    echo [92m✓ Redis container already running (%REDIS_CONTAINER%)[0m
 ) else (
-    docker ps -a | findstr llm-council-redis >nul 2>nul
+    docker ps -a | findstr %REDIS_CONTAINER% >nul 2>nul
     if %ERRORLEVEL% equ 0 (
         echo Starting existing Redis container...
-        docker start llm-council-redis
-        echo [92m✓ Redis container started[0m
+        docker start %REDIS_CONTAINER%
+        echo [92m✓ Redis container started (%REDIS_CONTAINER%)[0m
     ) else (
         echo Creating Redis container...
-        docker run -d --name llm-council-redis -p %REDIS_PORT%:6379 --restart unless-stopped redis:7-alpine
-        echo [92m✓ Redis container created and started[0m
+        docker run -d --name %REDIS_CONTAINER% -p %REDIS_PORT%:6379 --restart unless-stopped redis:7-alpine
+        echo [92m✓ Redis container created and started (%REDIS_CONTAINER%)[0m
     )
 )
 echo.
