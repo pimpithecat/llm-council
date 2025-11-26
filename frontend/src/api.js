@@ -231,4 +231,23 @@ export const api = {
     }
     return response.json();
   },
+
+  /**
+   * Verify that a model is callable on OpenRouter.
+   * @param {string} model - The model ID to verify
+   * @returns {Promise<{valid: boolean, error?: string}>}
+   */
+  async verifyModel(model) {
+    const response = await fetch(`${API_BASE}/api/models/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to verify model');
+    }
+    return response.json();
+  },
 };

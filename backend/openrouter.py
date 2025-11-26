@@ -51,7 +51,8 @@ async def close_http_client():
 async def query_model(
     model: str,
     messages: List[Dict[str, str]],
-    timeout: float = 60.0
+    timeout: float = 60.0,
+    max_tokens: Optional[int] = None
 ) -> Optional[Dict[str, Any]]:
     """
     Query a single model via OpenRouter API.
@@ -60,6 +61,7 @@ async def query_model(
         model: OpenRouter model identifier (e.g., "openai/gpt-4o")
         messages: List of message dicts with 'role' and 'content'
         timeout: Request timeout in seconds
+        max_tokens: Maximum tokens to generate (optional, for limiting response)
 
     Returns:
         Response dict with 'content' and optional 'reasoning_details', or None if failed
@@ -69,6 +71,9 @@ async def query_model(
         "messages": messages,
         "include_usage": True
     }
+    
+    if max_tokens is not None:
+        payload["max_tokens"] = max_tokens
 
     try:
         client = await get_http_client()

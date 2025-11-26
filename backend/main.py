@@ -333,6 +333,54 @@ async def update_council_config_endpoint(request: CouncilConfigRequest):
     return updated
 
 
+class VerifyModelRequest(BaseModel):
+    """Request to verify a model."""
+    model: str
+
+
+@app.post("/api/models/verify")
+async def verify_model(request: VerifyModelRequest):
+    """
+    Verify that a model is callable on OpenRouter.
+    Makes a minimal test request to check if the model is available.
+    """
+    from .openrouter import query_model
+    
+    # Use a minimal test message
+    test_messages = [{"role": "user", "content": "Hi"}]
+    
+    try:
+        # Short timeout for verification
+        response = await query_model(
+            request.model, 
+            test_messages, 
+            timeout=15.0,
+            max_tokens=5  # Minimal tokens to save cost
+        )
+        
+        if response is None:
+            return {
+                "valid": False,
+                "error": "Model did not respond. It may be unavailable or deprecated."
+            }
+        
+        return {
+            "valid": True,
+            "model": request.model
+        }
+        
+    except Exception as e:
+        error_msg = str(e)
+        if "404" in error_msg or "not found" in error_msg.lower():
+            return {"valid": False, "error": "Model not found on OpenRouter."}
+        elif "401" in error_msg or "403" in error_msg:
+            return {"valid": False, "error": "Model requires special access or payment."}
+        elif "rate" in error_msg.lower():
+            return {"valid": False, "error": "Rate limited. Try again later."}
+        else:
+            return {"valid": False, "error": f"Verification failed: {error_msg}"}
+
+
 @app.post("/api/conversations/{conversation_id}/message/stream")
 async def send_message_stream(conversation_id: str, request: SendMessageRequest):
     """
